@@ -23,4 +23,4 @@ jobs:
         uses: jupyterhub/repo2docker-action@master
         with:
           NO_PUSH: true
-          IMAGE_NAME: "YOUR_QUAY_ORG/pangeo-jupyter-ai"
+          IMAGE_NAME: "sed2194/pangeo-jupyter-ai"
