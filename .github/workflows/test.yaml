@@ -1,0 +1,26 @@
+name: Test build
+
+# Every PR builds the image (including the smoke test at the end of the
+# Dockerfile) without pushing, so a broken change can't reach the hub.
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image (no push)
+        uses: jupyterhub/repo2docker-action@master
+        with:
+          NO_PUSH: true
+          IMAGE_NAME: "YOUR_QUAY_ORG/pangeo-jupyter-ai"
