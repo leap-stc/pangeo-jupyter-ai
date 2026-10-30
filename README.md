@@ -8,8 +8,24 @@ The `pangeo/pangeo-notebook` image with Jupyter AI v3 and the Claude Code, Codex
 - `jupyter-ai` 3.2.0 from conda-forge, without the optional RTC extras
 - `nodejs` 22 in the `notebook` conda env
 - Agents installed with npm into the conda env: `claude` + `claude-agent-acp`, `codex` + `codex-acp`, `gemini`
+- [`leap-pangeo-mcp`](https://github.com/leap-stc/leap-pangeo-mcp) v0.1.0 (set by `LEAP_PANGEO_MCP_VERSION`), an MCP server that gives the agents working knowledge of LEAP Pangeo; see [LEAP Pangeo tools](#leap-pangeo-tools)
 
-Jupyter AI detects agents from what's on PATH, so there's no Jupyter config to ship.
+Jupyter AI detects agents from what's on PATH, so the only Jupyter config the image ships is the MCP server list below.
+
+## LEAP Pangeo tools
+
+The `leap-pangeo` MCP server (data catalog, docs, buckets, the user's own server) is registered for each agent as follows:
+
+| Agent | How it gets `leap-pangeo` |
+| --- | --- |
+| Every persona in the Jupyter AI chat | `PersonaManager.builtin_mcp_servers` in `/srv/conda/envs/notebook/etc/jupyter/jupyter_server_config.d/leap-pangeo-mcp.json`, next to the Jupyter MCP Server (the notebook tools) |
+| Gemini CLI in a terminal | `mcpServers` in `/etc/gemini-cli/settings.json`, merged with the user's own servers |
+| Claude Code in a terminal | Each user runs once: `claude mcp add --scope user leap-pangeo -- /srv/conda/envs/notebook/bin/leap-pangeo-mcp` |
+| Codex in a terminal | Each user runs once: `codex mcp add leap-pangeo -- /srv/conda/envs/notebook/bin/leap-pangeo-mcp` |
+
+Claude Code and Codex have no system-wide setting that adds a local (stdio) server without also blocking the servers users add themselves, so those two are per user; the commands save to `~/.claude.json` and `~/.codex/config.toml` in the persistent home. Claude Code also reads `/etc/claude-code/CLAUDE.md`, built from the server's LEAP primer, which ends with the `claude mcp add` command.
+
+A stdio server named `leap-pangeo` in a user's own `~/.jupyter/mcp_settings.json` replaces the image's entry for that user.
 
 ## One-time setup
 
