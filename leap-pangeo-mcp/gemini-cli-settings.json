@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "leap-pangeo": {
+      "command": "/srv/conda/envs/notebook/bin/leap-pangeo-mcp"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "PersonaManager": {
+    "builtin_mcp_servers": [
+      {"type": "http", "name": "Jupyter MCP Server", "url": "http://localhost:3001/mcp", "headers": []},
+      {"name": "leap-pangeo", "command": "/srv/conda/envs/notebook/bin/leap-pangeo-mcp", "args": [], "env": []}
+    ]
+  }
+}
