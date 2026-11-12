@@ -1,0 +1,9 @@
+#!/bin/bash
+# Image entrypoint. Registers leap-pangeo with the user's Claude Code and Codex
+# configs (the home directory is mounted by now), then hands off to the base
+# image's /srv/start, which sets up the Pangeo environment and execs the server.
+# Registration problems are logged and never stop the server from starting.
+
+/srv/conda/envs/notebook/bin/python -I -B /srv/leap-pangeo-mcp/register_agents.py || true
+
+exec /srv/start "$@"

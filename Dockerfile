@@ -78,11 +78,16 @@ COPY --chown=jovyan:jovyan leap-pangeo-mcp/jupyter_server_config.json \
 
 # Terminal agents. Gemini CLI merges system mcpServers with the user's own, so
 # it gets the server here. Claude Code and Codex have no system-wide setting
-# that adds a stdio server without blocking the servers users add, so users
-# run `claude mcp add` / `codex mcp add` once (see README). CLAUDE.md is built
-# from the package's own primer, so the text has one source.
+# that adds a stdio server without blocking the servers users add, so the
+# entrypoint (/srv/leap-start) adds it to each user's ~/.claude.json and
+# ~/.codex/config.toml at server start, once per user, then runs the base
+# image's /srv/start. CLAUDE.md is built from the package's own primer, so the
+# text has one source.
 USER root
 COPY leap-pangeo-mcp/gemini-cli-settings.json /etc/gemini-cli/settings.json
+COPY leap-pangeo-mcp/register_agents.py /srv/leap-pangeo-mcp/register_agents.py
+COPY leap-pangeo-mcp/leap-start /srv/leap-start
+RUN chmod 755 /srv/leap-start && chmod 644 /srv/leap-pangeo-mcp/register_agents.py
 RUN mkdir -p /etc/claude-code \
  && python -I -B -c "from leap_pangeo_mcp.core.knowledge import overview; print(overview(), end='')" \
         > /etc/claude-code/CLAUDE.md \
@@ -91,9 +96,14 @@ RUN mkdir -p /etc/claude-code \
  && chmod 644 /etc/gemini-cli/settings.json /etc/claude-code/CLAUDE.md
 USER ${NB_USER}
 
+# Wraps the base image's ENTRYPOINT ["/srv/start"]; KubeSpawner only replaces
+# the command, so this runs on every server start on the hub.
+ENTRYPOINT ["/srv/leap-start"]
+
 # --- Smoke test ---------------------------------------------------------------
 # Fail the build (and the PR check) if anything didn't land.
 COPY --chown=jovyan:jovyan leap-pangeo-mcp/smoke_test.py /tmp/leap-pangeo-mcp-smoke-test.py
+COPY --chown=jovyan:jovyan leap-pangeo-mcp/test_register_agents.py /tmp/test_register_agents.py
 RUN python -c "import importlib.metadata as m; print('jupyter-ai', m.version('jupyter-ai'))" \
  && jupyter server extension list 2>&1 | grep -q "jupyter_ai" \
  && jupyter labextension list 2>&1 | grep -q "@jupyter-ai/" \
@@ -101,5 +111,8 @@ RUN python -c "import importlib.metadata as m; print('jupyter-ai', m.version('ju
         command -v "$bin" > /dev/null || { echo "missing: $bin"; exit 1; }; \
     done \
  && python -I /tmp/leap-pangeo-mcp-smoke-test.py \
- && rm /tmp/leap-pangeo-mcp-smoke-test.py \
+ && cp /srv/leap-pangeo-mcp/register_agents.py /tmp/ \
+ && python -I -B /tmp/test_register_agents.py \
+ && test -x /srv/leap-start && test -x /srv/start \
+ && rm /tmp/leap-pangeo-mcp-smoke-test.py /tmp/test_register_agents.py /tmp/register_agents.py \
  && echo "Jupyter AI image OK"
