@@ -20,10 +20,17 @@ The `leap-pangeo` MCP server (data catalog, docs, buckets, the user's own server
 | --- | --- |
 | Every persona in the Jupyter AI chat | `PersonaManager.builtin_mcp_servers` in `/srv/conda/envs/notebook/etc/jupyter/jupyter_server_config.d/leap-pangeo-mcp.json`, next to the Jupyter MCP Server (the notebook tools) |
 | Gemini CLI in a terminal | `mcpServers` in `/etc/gemini-cli/settings.json`, merged with the user's own servers |
-| Claude Code in a terminal | Each user runs once: `claude mcp add --scope user leap-pangeo -- /srv/conda/envs/notebook/bin/leap-pangeo-mcp` |
-| Codex in a terminal | Each user runs once: `codex mcp add leap-pangeo -- /srv/conda/envs/notebook/bin/leap-pangeo-mcp` |
+| Claude Code in a terminal | Added to the user's `~/.claude.json` at server start (same entry as `claude mcp add --scope user`) |
+| Codex in a terminal | Added to the user's `~/.codex/config.toml` at server start (same entry as `codex mcp add`) |
 
-Claude Code and Codex have no system-wide setting that adds a local (stdio) server without also blocking the servers users add themselves, so those two are per user; the commands save to `~/.claude.json` and `~/.codex/config.toml` in the persistent home. Claude Code also reads `/etc/claude-code/CLAUDE.md`, built from the server's LEAP primer, which ends with the `claude mcp add` command.
+Claude Code and Codex have no system-wide setting that adds a local (stdio) server without also blocking the servers users add themselves, so those two are registered per user. The image's entrypoint, `/srv/leap-start`, runs `register_agents.py` and then hands off to the base image's `/srv/start`. The script:
+
+- adds `leap-pangeo` only when the user's config has no server by that name, and leaves everything else in the file untouched;
+- does it once per user per agent, recorded in `~/.local/state/leap-pangeo-mcp/`, so someone who runs `claude mcp remove leap-pangeo` doesn't get it back on the next restart (delete the marker file to have it re-added);
+- skips a config file it can't parse, logs why, and never stops the server from starting;
+- does nothing when `LEAP_PANGEO_MCP_AUTOREGISTER=0`.
+
+Claude Code also reads `/etc/claude-code/CLAUDE.md`, built from the server's LEAP primer, which ends with the manual `claude mcp add` command as a fallback.
 
 A stdio server named `leap-pangeo` in a user's own `~/.jupyter/mcp_settings.json` replaces the image's entry for that user.
 
